@@ -1,23 +1,46 @@
 from core.banner import show_banner
-from scanner import is_connected, get_latest_block
+from scanner import connect, is_connected, get_latest_block
 from scanner.watcher import watch_blocks
-from scanner.blocks import get_block
-from scanner.transactions import get_transactions
+from scanner.scanner import scan_block
 
 
-def on_new_block(block_number):
-    block = get_block(block_number)
-    transactions = get_transactions(block_number)
+def handle_block(block_number):
+    print(f"\n{'=' * 60}")
+    print(f"SCANNING BLOCK: {block_number:,}")
+    print(f"{'=' * 60}")
 
-    print("\n" + "=" * 50)
-    print(f"Block: {block.number:,}")
-    print(f"Transactions: {len(transactions):,}")
-    print(f"Gas Used: {block.gasUsed:,}")
+    try:
+        results = scan_block(block_number)
 
-    print("\nScanning transactions...\n")
+        total = len(results)
 
-    for tx_hash in transactions:
-        print(tx_hash.hex())
+        contracts = sum(
+            1
+            for tx in results
+            if tx["address_type"] in ("contract", "erc20")
+        )
+
+        tokens = sum(
+            1
+            for tx in results
+            if tx["token"] is not None
+        )
+
+        classifications = {}
+
+        for tx in results:
+            classification = tx["classification"]
+            classifications[classification] = (
+                classifications.get(classification, 0) + 1
+            )
+
+        print(f"Transactions: {total}")
+        print(f"Contracts: {contracts}")
+        print(f"Tokens: {tokens}")
+        print(f"Classifications: {classifications}")
+
+    except Exception as exc:
+        print(f"Scanner error: {exc}")
 
 
 def main():
@@ -29,8 +52,11 @@ def main():
     print("✓ Logger Ready")
 
     if not is_connected():
-        print("✗ Could not connect to BNB Chain")
-        return
+        print("Connecting to BNB Chain...")
+
+        if not connect():
+            print("✗ Could not connect to BNB Chain")
+            return
 
     print("✓ Scanner Ready")
     print("✓ Connected to BNB Chain")
@@ -40,10 +66,10 @@ def main():
     print("✓ Analyzer Ready")
 
     print("\nEsau is ready.")
-    print("\nEsau is watching the blockchain...\n")
+    print("Esau is watching the blockchain...\n")
 
     try:
-        watch_blocks(on_new_block, interval=1)
+        watch_blocks(handle_block, interval=2)
     except KeyboardInterrupt:
         print("\n\nShutting down Esau...")
         print("Goodbye.")

@@ -1,4 +1,5 @@
 from web3 import Web3
+from web3.middleware import ExtraDataToPOAMiddleware
 
 
 RPC_URLS = [
@@ -9,34 +10,41 @@ RPC_URLS = [
     "https://bsc-dataseed3.binance.org/",
 ]
 
-
 w3 = None
+current_rpc = None
 
 
 def connect() -> bool:
-    global w3
+    global w3, current_rpc
 
-    for rpc_url in RPC_URLS:
-        print(f"Trying RPC: {rpc_url}")
-
+    for url in RPC_URLS:
         try:
+            print(f"Trying RPC: {url}")
+
             candidate = Web3(
                 Web3.HTTPProvider(
-                    rpc_url,
+                    url,
                     request_kwargs={"timeout": 10},
                 )
-            
+            )
+
+            candidate.middleware_onion.inject(
+                ExtraDataToPOAMiddleware,
+                layer=0,
             )
 
             if candidate.is_connected():
-                print(f"✓ Connected to: {rpc_url}")
                 w3 = candidate
+                current_rpc = url
+
+                print(f"✓ Connected to: {url}")
                 return True
 
-        except Exception as e:
-            print(f"✗ Failed: {e}")
+        except Exception as exc:
+            print(f"✗ RPC failed: {exc}")
 
     w3 = None
+    current_rpc = None
     return False
 
 
@@ -44,7 +52,7 @@ def is_connected() -> bool:
     return w3 is not None and w3.is_connected()
 
 
-def get_latest_block():
+def get_latest_block() -> int:
     if not is_connected():
         if not connect():
             raise ConnectionError("No working BNB Chain RPC available.")
