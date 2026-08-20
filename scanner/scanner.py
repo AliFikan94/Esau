@@ -1,6 +1,10 @@
+from datetime import datetime, timezone
+
 from .blocks import get_block_transactions
 from .transactions import inspect_transaction, classify_transaction
 from .contracts import get_contract_type, get_token_info
+
+from storage.database import get_token, save_token
 
 
 def scan_block(block_number):
@@ -25,11 +29,37 @@ def scan_block(block_number):
             else:
                 token_info = None
 
+        memory_status = "not_applicable"
+        remembered_token = None
+
+        if token_info:
+            address = token_info["address"]
+
+            remembered_token = get_token(address)
+
+            if remembered_token:
+                memory_status = "known"
+
+            else:
+                memory_status = "new"
+
+                token_to_save = {
+                    **token_info,
+                    "first_seen_block": block_number,
+                    "first_seen_at": datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+                }
+
+                save_token(token_to_save)
+
         results.append({
             **inspected,
             "classification": classify_transaction(tx),
             "address_type": address_type,
             "token": token_info,
+            "memory_status": memory_status,
+            "remembered_token": remembered_token,
         })
 
     return results

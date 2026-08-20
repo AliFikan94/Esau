@@ -1,16 +1,17 @@
+# Environment & Virtual Envs
+.venv/
+.env
+
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
 
-# Virtual environment
-.venv/
+# Local Database
+esau.db
 
-# Environment
-.env
-
-# IDE
+# IDEs & Editors
 .vscode/
 
-# Temporary files
+# Temporary & Backup Files
 *~
