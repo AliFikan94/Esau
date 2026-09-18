@@ -30,7 +30,6 @@ pydantic_core==2.46.4
 Pygments==2.20.0
 python-dotenv==1.2.2
 pyunormalize==17.0.0
-pywin32==312
 regex==2026.7.19
 requests==2.34.2
 rich==15.0.0

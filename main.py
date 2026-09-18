@@ -26,6 +26,12 @@ def handle_block(block_number):
             if tx["token"] is not None
         )
 
+        redeploys = sum(
+            1
+            for tx in results
+            if tx["fingerprint"] and tx["fingerprint"]["is_redeploy"]
+        )
+
         classifications = {}
 
         for tx in results:
@@ -37,7 +43,19 @@ def handle_block(block_number):
         print(f"Transactions: {total}")
         print(f"Contracts: {contracts}")
         print(f"Tokens: {tokens}")
+        print(f"Redeploys: {redeploys}")
         print(f"Classifications: {classifications}")
+
+        for tx in results:
+            fingerprint = tx["fingerprint"]
+
+            if fingerprint and fingerprint["is_redeploy"]:
+                print(
+                    f"  ⚠ REDEPLOY: {tx['token']['symbol']} "
+                    f"({fingerprint['address']}) matches bytecode "
+                    f"already seen at "
+                    f"{fingerprint['matching_addresses']}"
+                )
 
     except Exception as exc:
         print(f"Scanner error: {exc}")

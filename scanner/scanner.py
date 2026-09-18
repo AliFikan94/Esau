@@ -5,6 +5,7 @@ from .transactions import inspect_transaction, classify_transaction
 from .contracts import get_contract_type, get_token_info
 
 from storage.database import get_token, save_token
+from provenance.fingerprint import check_fingerprint
 
 
 def scan_block(block_number):
@@ -31,6 +32,7 @@ def scan_block(block_number):
 
         memory_status = "not_applicable"
         remembered_token = None
+        fingerprint = None
 
         if token_info:
             address = token_info["address"]
@@ -43,15 +45,21 @@ def scan_block(block_number):
             else:
                 memory_status = "new"
 
+                seen_at = datetime.now(timezone.utc).isoformat()
+
                 token_to_save = {
                     **token_info,
                     "first_seen_block": block_number,
-                    "first_seen_at": datetime.now(
-                        timezone.utc
-                    ).isoformat(),
+                    "first_seen_at": seen_at,
                 }
 
                 save_token(token_to_save)
+
+                fingerprint = check_fingerprint(
+                    address,
+                    block_number,
+                    seen_at,
+                )
 
         results.append({
             **inspected,
@@ -60,6 +68,7 @@ def scan_block(block_number):
             "token": token_info,
             "memory_status": memory_status,
             "remembered_token": remembered_token,
+            "fingerprint": fingerprint,
         })
 
     return results
