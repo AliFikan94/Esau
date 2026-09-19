@@ -1,15 +1,57 @@
 import sys
 from datetime import datetime, timezone
 
+from web3 import Web3
+
 from scanner.contracts import get_contract_type, get_token_info
 from scanner.rpc import connect, is_connected
-from storage.database import get_token, save_token, initialize_database
+from storage.database import (
+    get_token,
+    save_token,
+    search_tokens,
+    initialize_database,
+)
 from provenance.fingerprint import check_fingerprint
 
 
-def investigate(address):
-    initialize_database()
+def search_by_name(name):
+    matches = search_tokens(name)
 
+    print(f"\n{'=' * 60}")
+    print(f"ESAU NAME SEARCH: \"{name}\"")
+    print(f"{'=' * 60}")
+
+    if not matches:
+        print("No matches in Esau's memory yet.")
+        print(
+            "That is not a safety signal — Esau simply hasn't "
+            "investigated anything by that name."
+        )
+        print(f"{'=' * 60}\n")
+        return
+
+    if len(matches) > 1:
+        print(f"{len(matches)} DIFFERENT contracts share this name.")
+        print(
+            "A shared name is not proof of a relationship. Run "
+            "investigate.py on each address separately.\n"
+        )
+    else:
+        print("1 match in memory.\n")
+
+    for token in matches:
+        print(f"  {token['symbol']} — {token['name']}")
+        print(f"  {token['address']}")
+        print(
+            f"  First seen: {token['first_seen_at']} "
+            f"(block {token['first_seen_block']})"
+        )
+        print()
+
+    print(f"{'=' * 60}\n")
+
+
+def investigate_address(address):
     if not is_connected():
         if not connect():
             print("✗ Could not connect to BNB Chain")
@@ -65,9 +107,18 @@ def investigate(address):
     print(f"{'=' * 60}\n")
 
 
+def investigate(query):
+    initialize_database()
+
+    if Web3.is_address(query):
+        investigate_address(query)
+    else:
+        search_by_name(query)
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python investigate.py <address>")
+        print("Usage: python investigate.py <address or name>")
         sys.exit(1)
 
     investigate(sys.argv[1])

@@ -58,6 +58,28 @@ def get_token(address):
     return dict(token) if token else None
 
 
+def search_tokens(name):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    pattern = f"%{name}%"
+
+    cursor.execute("""
+        SELECT *
+        FROM tokens
+        WHERE name LIKE ? COLLATE NOCASE
+        OR symbol LIKE ? COLLATE NOCASE
+        ORDER BY first_seen_at
+    """, (pattern, pattern))
+
+    matches = cursor.fetchall()
+
+    connection.close()
+
+    return [dict(match) for match in matches]
+
+
 def token_exists(address):
     connection = get_connection()
 
