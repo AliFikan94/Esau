@@ -71,6 +71,8 @@ def investigate_address(address):
 
     token_info = get_token_info(address)
 
+    address = token_info["address"]
+
     print(f"Name: {token_info['name']}")
     print(f"Symbol: {token_info['symbol']}")
     print(f"Decimals: {token_info['decimals']}")

@@ -1,5 +1,3 @@
-from web3 import Web3
-
 from . import rpc
 
 
@@ -49,7 +47,7 @@ def is_contract(address):
 
     _ensure_connection()
 
-    address = Web3.to_checksum_address(address)
+    address = rpc.to_checksum(address)
 
     code = rpc.w3.eth.get_code(address)
 
@@ -89,7 +87,7 @@ def get_token_info(address):
     if not is_contract(address):
         return None
 
-    address = Web3.to_checksum_address(address)
+    address = rpc.to_checksum(address)
 
     contract = rpc.w3.eth.contract(
         address=address,

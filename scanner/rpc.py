@@ -52,6 +52,10 @@ def is_connected() -> bool:
     return w3 is not None and w3.is_connected()
 
 
+def to_checksum(address):
+    return Web3.to_checksum_address(address)
+
+
 def get_latest_block() -> int:
     if not is_connected():
         if not connect():

@@ -21,6 +21,8 @@ def hash_bytecode(bytecode: bytes) -> str:
 def get_bytecode_hash(address):
     _ensure_connection()
 
+    address = rpc.to_checksum(address)
+
     code = rpc.w3.eth.get_code(address)
 
     return hash_bytecode(code)
@@ -35,6 +37,8 @@ def check_fingerprint(address, block_number, seen_at):
     same contract was redeployed under a new address. It is not a
     verdict on intent, only evidence that the addresses are related.
     """
+
+    address = rpc.to_checksum(address)
 
     bytecode_hash = get_bytecode_hash(address)
 
