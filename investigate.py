@@ -3,11 +3,13 @@ from datetime import datetime, timezone
 
 from scanner.contracts import get_contract_type, get_token_info
 from scanner.rpc import connect, is_connected
-from storage.database import get_token, save_token
+from storage.database import get_token, save_token, initialize_database
 from provenance.fingerprint import check_fingerprint
 
 
 def investigate(address):
+    initialize_database()
+
     if not is_connected():
         if not connect():
             print("✗ Could not connect to BNB Chain")

@@ -2,6 +2,7 @@ from core.banner import show_banner
 from scanner import connect, is_connected, get_latest_block
 from scanner.watcher import watch_blocks
 from scanner.scanner import scan_block
+from storage.database import initialize_database
 
 
 def handle_block(block_number):
@@ -66,8 +67,11 @@ def main():
 
     print("Initializing Core...")
 
+    initialize_database()
+
     print("✓ Configuration Loaded")
     print("✓ Logger Ready")
+    print("✓ Database Ready")
 
     if not is_connected():
         print("Connecting to BNB Chain...")
