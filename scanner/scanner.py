@@ -4,7 +4,7 @@ from .blocks import get_block_transactions
 from .transactions import inspect_transaction, classify_transaction
 from .contracts import get_contract_type, get_token_info
 
-from storage.database import get_token, save_token
+from storage.database import get_token, save_token, record_transfer
 from provenance.fingerprint import check_fingerprint
 
 
@@ -15,6 +15,16 @@ def scan_block(block_number):
 
     for tx in transactions:
         inspected = inspect_transaction(tx)
+
+        if inspected["to"] and inspected["value"] > 0:
+            record_transfer({
+                "tx_hash": inspected["hash"],
+                "from_address": inspected["from"],
+                "to_address": inspected["to"],
+                "value": inspected["value"],
+                "block_number": block_number,
+                "seen_at": datetime.now(timezone.utc).isoformat(),
+            })
 
         to_address = tx.get("to")
 

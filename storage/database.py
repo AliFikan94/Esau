@@ -159,6 +159,72 @@ def find_fingerprints_by_hash(bytecode_hash, exclude_address=None):
     return [dict(match) for match in matches]
 
 
+def record_transfer(transfer):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT OR IGNORE INTO transfers (
+            tx_hash,
+            from_address,
+            to_address,
+            value,
+            block_number,
+            seen_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        transfer["tx_hash"],
+        transfer["from_address"],
+        transfer["to_address"],
+        str(transfer["value"]),
+        transfer.get("block_number"),
+        transfer.get("seen_at"),
+    ))
+
+    connection.commit()
+    connection.close()
+
+
+def get_earliest_incoming_transfer(address):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM transfers
+        WHERE to_address = ?
+        ORDER BY block_number ASC, id ASC
+        LIMIT 1
+    """, (address,))
+
+    transfer = cursor.fetchone()
+
+    connection.close()
+
+    return dict(transfer) if transfer else None
+
+
+def count_transfers_involving(address):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*) AS count
+        FROM transfers
+        WHERE from_address = ? OR to_address = ?
+    """, (address, address))
+
+    row = cursor.fetchone()
+
+    connection.close()
+
+    return row["count"]
+
+
 def initialize_database():
     connection = get_connection()
 
@@ -190,6 +256,28 @@ def initialize_database():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_fingerprints_hash
         ON contract_fingerprints (bytecode_hash)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS transfers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tx_hash TEXT UNIQUE NOT NULL,
+            from_address TEXT NOT NULL,
+            to_address TEXT NOT NULL,
+            value TEXT NOT NULL,
+            block_number INTEGER,
+            seen_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_transfers_to
+        ON transfers (to_address)
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_transfers_from
+        ON transfers (from_address)
     """)
 
     connection.commit()

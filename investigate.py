@@ -4,14 +4,16 @@ from datetime import datetime, timezone
 from web3 import Web3
 
 from scanner.contracts import get_contract_type, get_token_info
-from scanner.rpc import connect, is_connected
+from scanner.rpc import connect, is_connected, to_checksum
 from storage.database import (
     get_token,
     save_token,
     search_tokens,
+    get_earliest_incoming_transfer,
+    count_transfers_involving,
     initialize_database,
 )
-from provenance.fingerprint import check_fingerprint
+from provenance.fingerprint import check_fingerprint, get_stored_redeploy_status
 
 
 def search_by_name(name):
@@ -30,22 +32,44 @@ def search_by_name(name):
         print(f"{'=' * 60}\n")
         return
 
-    if len(matches) > 1:
-        print(f"{len(matches)} DIFFERENT contracts share this name.")
+    enriched = [
+        {
+            **token,
+            "activity_count": count_transfers_involving(token["address"]),
+            "redeploy": get_stored_redeploy_status(token["address"]),
+        }
+        for token in matches
+    ]
+
+    enriched.sort(key=lambda token: token["activity_count"], reverse=True)
+
+    if len(enriched) > 1:
+        print(f"{len(enriched)} DIFFERENT contracts share this name.")
         print(
-            "A shared name is not proof of a relationship. Run "
-            "investigate.py on each address separately.\n"
+            "A shared name is not proof of a relationship. Ranked "
+            "below by transfer activity Esau has personally "
+            "observed — this is an activity signal, not a safety "
+            "verdict.\n"
         )
     else:
         print("1 match in memory.\n")
 
-    for token in matches:
+    for token in enriched:
         print(f"  {token['symbol']} — {token['name']}")
         print(f"  {token['address']}")
         print(
             f"  First seen: {token['first_seen_at']} "
             f"(block {token['first_seen_block']})"
         )
+        print(f"  Transfers observed by Esau: {token['activity_count']}")
+
+        redeploy = token["redeploy"]
+
+        if redeploy and redeploy["is_redeploy"]:
+            print(
+                f"  ⚠ Bytecode matches: {redeploy['matching_addresses']}"
+            )
+
         print()
 
     print(f"{'=' * 60}\n")
@@ -57,6 +81,8 @@ def investigate_address(address):
             print("✗ Could not connect to BNB Chain")
             return
 
+    address = to_checksum(address)
+
     address_type = get_contract_type(address)
 
     print(f"\n{'=' * 60}")
@@ -64,14 +90,29 @@ def investigate_address(address):
     print(f"{'=' * 60}")
     print(f"Address type: {address_type}")
 
+    if address_type == "wallet":
+        funding = get_earliest_incoming_transfer(address)
+
+        if funding:
+            print(f"Earliest funding observed by Esau:")
+            print(f"  {funding['value']} wei from {funding['from_address']}")
+            print(f"  at block {funding['block_number']}")
+        else:
+            print("No funding history observed by Esau yet.")
+            print(
+                "Esau only knows transfers it has personally watched "
+                "live — this is not proof none exist."
+            )
+
+        print(f"{'=' * 60}\n")
+        return
+
     if address_type != "erc20":
-        print("Not an ERC-20 token — nothing further to investigate yet.")
+        print("Not an ERC-20 contract — nothing further to investigate yet.")
         print(f"{'=' * 60}\n")
         return
 
     token_info = get_token_info(address)
-
-    address = token_info["address"]
 
     print(f"Name: {token_info['name']}")
     print(f"Symbol: {token_info['symbol']}")

@@ -61,3 +61,28 @@ def check_fingerprint(address, block_number, seen_at):
         "is_redeploy": len(matches) > 0,
         "matching_addresses": [match["address"] for match in matches],
     }
+
+
+def get_stored_redeploy_status(address):
+    """
+    Check redeploy status from memory only — no RPC call.
+
+    Only meaningful for an address Esau has already fingerprinted
+    (e.g. via check_fingerprint during a prior investigation).
+    Returns None if nothing is stored yet, never a guess.
+    """
+
+    fingerprint = get_fingerprint(address)
+
+    if not fingerprint:
+        return None
+
+    matches = find_fingerprints_by_hash(
+        fingerprint["bytecode_hash"],
+        exclude_address=address,
+    )
+
+    return {
+        "is_redeploy": len(matches) > 0,
+        "matching_addresses": [match["address"] for match in matches],
+    }
