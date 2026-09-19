@@ -1,22 +1,26 @@
 import os
 import sys
 import time
+from datetime import datetime, timezone
 
 import requests
 from dotenv import load_dotenv
 
 from investigate import investigate
+from storage.database import record_query, record_feedback, initialize_database
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+OWNER_CHAT_ID = os.getenv("OWNER_CHAT_ID")
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 MAX_MESSAGE_LENGTH = 4000
 
 WELCOME_TEXT = (
     "Send me a BNB Chain contract address or a token name/symbol "
-    "and I'll investigate it."
+    "and I'll investigate it.\n\n"
+    "Use /feedback <message> anytime to tell me what's working or not."
 )
 
 
@@ -41,6 +45,24 @@ def handle_message(chat_id, text):
     if not query:
         return
 
+    if query.startswith("/feedback"):
+        parts = query.split(maxsplit=1)
+        message = parts[1] if len(parts) > 1 else ""
+
+        if not message:
+            send_message(chat_id, "Usage: /feedback <your message>")
+            return
+
+        record_feedback(
+            chat_id, message, datetime.now(timezone.utc).isoformat()
+        )
+
+        if OWNER_CHAT_ID:
+            send_message(OWNER_CHAT_ID, f"Feedback from {chat_id}: {message}")
+
+        send_message(chat_id, "Thanks — got it.")
+        return
+
     if query.startswith("/"):
         parts = query.split(maxsplit=1)
         query = parts[1] if len(parts) > 1 else ""
@@ -48,6 +70,8 @@ def handle_message(chat_id, text):
         if not query:
             send_message(chat_id, WELCOME_TEXT)
             return
+
+    record_query(chat_id, query, datetime.now(timezone.utc).isoformat())
 
     send_message(chat_id, f"Investigating \"{query}\"...")
 
@@ -63,6 +87,8 @@ def run():
     if not BOT_TOKEN:
         print("✗ TELEGRAM_BOT_TOKEN not set. Add it to your .env file.")
         sys.exit(1)
+
+    initialize_database()
 
     print("Esau bot is listening...")
 

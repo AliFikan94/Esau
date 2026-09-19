@@ -225,6 +225,34 @@ def count_transfers_involving(address):
     return row["count"]
 
 
+def record_query(chat_id, query, asked_at):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO queries (chat_id, query, asked_at)
+        VALUES (?, ?, ?)
+    """, (str(chat_id), query, asked_at))
+
+    connection.commit()
+    connection.close()
+
+
+def record_feedback(chat_id, message, submitted_at):
+    connection = get_connection()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO feedback (chat_id, message, submitted_at)
+        VALUES (?, ?, ?)
+    """, (str(chat_id), message, submitted_at))
+
+    connection.commit()
+    connection.close()
+
+
 def initialize_database():
     connection = get_connection()
 
@@ -278,6 +306,24 @@ def initialize_database():
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_transfers_from
         ON transfers (from_address)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS queries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id TEXT,
+            query TEXT NOT NULL,
+            asked_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id TEXT,
+            message TEXT NOT NULL,
+            submitted_at TEXT
+        )
     """)
 
     connection.commit()
