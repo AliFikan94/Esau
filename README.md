@@ -114,41 +114,34 @@ The local SQLite database is stored as `esau.db` in the project directory and is
 
 Esau is an early-stage project. Its scanner and persistent token memory are working; its deeper investigation and risk-analysis capabilities are still being built.
 
-Weeks 1-2: make the scanner trustworthy
+## Roadmap
+An order forced by dependencies: each stage feeds the next check, so it can't be done out of sequence.
 
-Right now Esau starts from the moment it runs and remembers tokens it has seen. That's a toy scanner. The first job is turning it into a proper one.
+Weeks 1-2 · Make the scanner trustworthy
+Esau currently starts from the moment it runs. This stage turns it into a scanner that can reconstruct what happened to a token before Esau noticed it.
 
-Swap the SQLite table for something that can answer "what happened to this token between launch and now" without replaying the chain.
-Add a backlog pass: when a new token appears, go back and pull its creation transaction and the first N trades, not just what happens after you noticed it.
-Add retry and checkpointing so a dropped RPC call doesn't silently create a gap in the data. Log every gap you know about.
-Provable by end of week 2: pick ten tokens that rugged in the last month, run Esau on them, and show it reconstructing their launch and first trades from scratch. That's a demo. You have nothing like it today.
-Weeks 3-4: contract screening
-
-This is the part with the clearest answer, so do it before anything statistical.
-
-Honeypot detection: attempt a simulated buy and sell against the contract and see whether the sell reverts.
-Ownership and permission flags: is ownership renounced, is there a mint function, can the owner pause transfers or change tax, is there a blacklist.
-Tax detection: read buy and sell tax from the contract where it's readable, and flag the ones that are hidden or adjustable.
-Provable by end of week 4: a table of twenty known scam tokens and twenty legitimate ones, with Esau's flags next to the truth. Publish the accuracy. Even if it's 70%, publishing it is the thing that makes people trust the rest.
-Weeks 5-6: holders and liquidity
-
-Holder distribution: top 10 and top 50 concentration, excluding known pool and burn addresses.
-Liquidity: pool depth, whether LP tokens are locked and for how long, who holds them.
-Wallet clustering: the same deployer, the same funding source, wallets funded within minutes of each other. This is where the scam signal actually lives.
-Weeks 7-8: the score
-
-Combine the above into one number with the reasoning attached, not a black box. Every point of the score should trace to a specific finding.
-This is where you own the "evidence first" claim in your README. Most of these tools output a number and nothing else. Yours says "62, and here's why, and here's what I couldn't verify."
-Provable by end of week 8: a working web page where someone pastes a contract address and gets a scored report. That's the moment Esau stops being a repo and becomes a product someone can use without a terminal.
-Weeks 9-10: put it in front of ten real people
-
-Ten people who trade BNB Chain memecoins. Not friends, not other devs. Give them the page, watch them use it, and write down where they got confused. Whatever they ignore, cut.
-
-Weeks 11-12: the decision layer
-
-Feed the score into a recommendation with the evidence attached, still requiring the human to approve.
-Don't attempt autonomous execution. Everyone promises it and almost nobody has the safety story. Your restraint is a feature, and it's a better story at Demo Day than "it trades for you."
-
+Store token history in a form that answers "what happened between launch and now" without replaying the chain
+Backlog pass on new tokens: pull the creation transaction and first trades, not just activity after detection
+Retry and checkpointing so a dropped RPC call can't silently create a gap
+Provable by week 2: ten tokens that rugged last month, reconstructed from launch through first trades
+Weeks 3-4 · Contract screening
+Honeypot detection by simulating a buy and sell against the contract
+Ownership and permission flags: renounced, mintable, pausable, blacklist, adjustable tax
+Readable buy and sell tax, with hidden or adjustable tax flagged
+Provable by week 4: a table of twenty known scams and twenty legitimate tokens, with published accuracy
+Weeks 5-6 · Holders and liquidity
+Top 10 and top 50 holder concentration, excluding pool and burn addresses
+Pool depth, LP lock status and duration, LP holders
+Wallet clustering: shared deployer, shared funding source, wallets funded within minutes of each other
+Weeks 7-8 · The score
+Combine findings into one number where every point traces to a specific finding
+Provable by week 8: a public page where anyone can paste a contract address and get a scored report
+Weeks 9-10 · Real users
+Ten people who trade BNB Chain memecoins, not friends and not other developers
+Watch them use the page, record where they get stuck, cut what they ignore
+Weeks 11-12 · The decision layer
+Feed the score into a recommendation with the evidence attached
+Human approval stays mandatory. No autonomous execution
 Built and maintained by one person.
 
 ## Author
